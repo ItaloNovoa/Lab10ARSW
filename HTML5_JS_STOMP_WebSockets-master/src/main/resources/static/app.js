@@ -7,10 +7,10 @@ var app = (function () {
         }        
     }
     
-    var stompClient = null;
+    var stompClient = null;    
 
-    var addPointToCanvas = function (point) {        
-        var canvas = document.getElementById("canvas");
+    var addPointToCanvas = function (point,num) { 
+        var canvas = document.getElementById(num);
         var ctx = canvas.getContext("2d");
         ctx.beginPath();
         ctx.arc(point.x, point.y, 3, 0, 2 * Math.PI);
@@ -18,8 +18,8 @@ var app = (function () {
     };
     
     
-    var getMousePosition = function (evt) {
-        canvas = document.getElementById("canvas");
+    var getMousePosition = function (evt,num) {
+        canvas = document.getElementById(num);
         var rect = canvas.getBoundingClientRect();
         return {
             x: evt.clientX - rect.left,
@@ -28,18 +28,19 @@ var app = (function () {
     };
 
 
-    var connectAndSubscribe = function () {
-        console.info('Connecting to WS...');
+    var connectAndSubscribe = function (num) {
+        //console.info('Connecting to WS...');
         var socket = new SockJS('/stompendpoint');
         stompClient = Stomp.over(socket);
         
         //subscribe to /topic/TOPICXX when connections succeed
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            stompClient.subscribe('/topic/newpoint', function (eventbody) {
-            	var p=JSON.parse(eventbody.body);
-                addPointToCanvas(p); 
-                
+            src='/topic/newpoint'+num;
+            alert(src);
+            stompClient.subscribe(src, function (eventbody) {
+                var p=JSON.parse(eventbody.body);                    
+                addPointToCanvas(p,num);                
             });
         });
 
@@ -49,23 +50,31 @@ var app = (function () {
 
     return {
 
-        init: function () {
-            var can = document.getElementById("canvas");
-            
+        init: function (num) {                   
+            can = document.getElementById(num);
             //websocket connection
-            connectAndSubscribe();
+            connectAndSubscribe(num);
             can.addEventListener('click', function(evt) {
-                var pt = getMousePosition(evt);
-                app.publishPoint(pt.x, pt.y);
+                var pt = getMousePosition(evt,num);
+                app.publishPoint(pt.x, pt.y,num);
             });
         },
-
-        publishPoint: function(px,py){
+        
+        conexion:function(num){
+            var body=$('#Body');
+            body.empty;
+            str='<canvas id="'+num+'" width="800" height="500" style="border: 1px solid blue"></canvas>'
+            body.append(str);            
+            body.onload="app.init";
+            app.init(num);
+        },
+        publishPoint: function(px,py,num){
             var pt=new Point(px,py);
-            console.info("publishing point at "+pt);
+            //console.info("publishing point at "+pt);
             var punto = JSON.stringify(pt);
-            stompClient.send("/topic/newpoint", {}, punto);
-            addPointToCanvas(pt);
+            src='/topic/newpoint'+num;
+            stompClient.send(src, {}, punto);
+            addPointToCanvas(pt,num);
             
         },
 
