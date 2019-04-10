@@ -18,6 +18,22 @@ var app = (function () {
     };
     
     
+    var addPolyToCanvas = function (num){
+    	//points, num
+    	//poly [x,y, x,y, x,y.....];    	
+    	var poly=[ 5,5, 100,50, 50,100, 10,90 ];
+    	var canvas=document.getElementById(num);
+    	var ctx = canvas.getContext('2d');
+    	ctx.fillStyle = '#f00';
+
+    	ctx.beginPath();
+    	ctx.moveTo(poly[0], poly[1]);
+    	for( item=2 ; item < poly.length-1 ; item+=2 ){ctx.lineTo( poly[item] , poly[item+1] )}
+
+    	ctx.closePath();
+    	ctx.fill();    	
+    }
+    
     var getMousePosition = function (evt,num) {
         canvas = document.getElementById(num);
         var rect = canvas.getBoundingClientRect();
@@ -36,11 +52,11 @@ var app = (function () {
         //subscribe to /topic/TOPICXX when connections succeed
         stompClient.connect({}, function (frame) {
             console.log('Connected: ' + frame);
-            src='/topic/newpoint'+num;
-            alert(src);
+            src='/topic/newpoint.'+num;
             stompClient.subscribe(src, function (eventbody) {
                 var p=JSON.parse(eventbody.body);                    
-                addPointToCanvas(p,num);                
+                addPointToCanvas(p,num);
+                addPolyToCanvas(num);
             });
         });
 
@@ -72,10 +88,8 @@ var app = (function () {
             var pt=new Point(px,py);
             //console.info("publishing point at "+pt);
             var punto = JSON.stringify(pt);
-            src='/topic/newpoint'+num;
-            stompClient.send(src, {}, punto);
-            addPointToCanvas(pt,num);
-            
+            src='/app/newpoint.'+num;
+            stompClient.send(src, {}, punto);            
         },
 
         disconnect: function () {
